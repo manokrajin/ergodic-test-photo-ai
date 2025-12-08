@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "2356601100",
+    "project_id": "ergodic-test",
+    "storage_bucket": "ergodic-test.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:2356601100:android:5269e874af47e7ad4be929",
+        "android_client_info": {
+          "package_name": "com.example.ergodic_test_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAakw2I26qHTucVRAeQ74GTOM0IXw1TAhg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
