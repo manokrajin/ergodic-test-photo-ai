@@ -1,15 +1,17 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../service/storage_service.dart';
 import 'provider/generated_images_provider.dart';
 import 'provider/image_provider.dart';
+import 'widgets/confetti_animation.dart';
 import 'widgets/gallery_grid.dart';
 import 'widgets/generate_button.dart';
+import 'widgets/parallax_effect.dart';
 import 'widgets/remix_app_bar.dart';
 import 'widgets/results_grid.dart';
 import 'widgets/section_header.dart';
@@ -41,6 +43,8 @@ class _RemixAppState extends ConsumerState<RemixApp>
   // State
   Future<List<Map<String, dynamic>>>? _galleryFuture;
   bool _isSaving = false;
+  bool _showConfetti = false;
+  final ScrollController _scrollController = ScrollController();
 
   // Animation controllers
   late AnimationController _pulseController;
@@ -57,6 +61,7 @@ class _RemixAppState extends ConsumerState<RemixApp>
   void dispose() {
     _pulseController.dispose();
     _fadeController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -87,11 +92,13 @@ class _RemixAppState extends ConsumerState<RemixApp>
   // ============================================================================
 
   Future<void> _pickImage() async {
+    HapticFeedback.mediumImpact();
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 90,
     );
     if (picked != null) {
+      HapticFeedback.lightImpact();
       ref.read(imageProviderProvider.notifier).setImage(picked);
       ref.read(generatedImagesProvider.notifier).clear();
     }
@@ -106,6 +113,7 @@ class _RemixAppState extends ConsumerState<RemixApp>
 
   Future<void> _saveImageBytes(Uint8List bytes, String suggestedName) async {
     setState(() => _isSaving = true);
+    HapticFeedback.mediumImpact();
     try {
       final name = suggestedName.contains('.')
           ? suggestedName
@@ -113,10 +121,17 @@ class _RemixAppState extends ConsumerState<RemixApp>
       await _storageService.uploadBytes(bytes, fileName: name);
       _refreshGallery();
       if (mounted) {
+        HapticFeedback.heavyImpact();
+        setState(() => _showConfetti = true);
         _showSuccessSnackBar('Saved to Gallery');
+        // Hide confetti after animation
+        Future.delayed(const Duration(milliseconds: 2000), () {
+          if (mounted) setState(() => _showConfetti = false);
+        });
       }
     } catch (e) {
       if (mounted) {
+        HapticFeedback.vibrate();
         _showErrorSnackBar('Failed to save');
       }
     } finally {
@@ -125,14 +140,17 @@ class _RemixAppState extends ConsumerState<RemixApp>
   }
 
   Future<void> _deleteSavedImage(String fullPath) async {
+    HapticFeedback.mediumImpact();
     try {
       await _storageService.deleteImage(fullPath);
       _refreshGallery();
       if (mounted) {
+        HapticFeedback.lightImpact();
         _showSuccessSnackBar('Deleted successfully');
       }
     } catch (e) {
       if (mounted) {
+        HapticFeedback.vibrate();
         _showErrorSnackBar('Failed to delete');
       }
     }
@@ -266,29 +284,32 @@ class _RemixAppState extends ConsumerState<RemixApp>
     final size = MediaQuery.of(context).size;
     final isCompact = size.width < 600;
 
-    return Scaffold(
-      body: Container(
-        decoration: _buildBackground(),
-        child: SafeArea(
-          child: CustomScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            slivers: [
-              SliverToBoxAdapter(
-                child: RemixAppBar(fadeController: _fadeController),
+    return ConfettiOverlay(
+      show: _showConfetti,
+      child: Scaffold(
+        body: AnimatedGradientBackground(
+          child: SafeArea(
+            child: CustomScrollView(
+              controller: _scrollController,
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
               ),
-              SliverToBoxAdapter(child: _buildHeroSection(image, isCompact)),
-              if (image != null)
+              slivers: [
                 SliverToBoxAdapter(
-                  child: _buildGenerateSection(image, generatedState),
+                  child: RemixAppBar(fadeController: _fadeController),
                 ),
-              SliverToBoxAdapter(
-                child: _buildGeneratedSection(generatedState, isCompact),
-              ),
-              SliverToBoxAdapter(child: _buildGallerySection(isCompact)),
-              const SliverToBoxAdapter(child: SizedBox(height: 40)),
-            ],
+                SliverToBoxAdapter(child: _buildHeroSection(image, isCompact)),
+                if (image != null)
+                  SliverToBoxAdapter(
+                    child: _buildGenerateSection(image, generatedState),
+                  ),
+                SliverToBoxAdapter(
+                  child: _buildGeneratedSection(generatedState, isCompact),
+                ),
+                SliverToBoxAdapter(child: _buildGallerySection(isCompact)),
+                const SliverToBoxAdapter(child: SizedBox(height: 40)),
+              ],
+            ),
           ),
         ),
       ),
