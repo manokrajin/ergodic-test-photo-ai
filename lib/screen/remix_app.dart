@@ -8,12 +8,18 @@ import 'package:image_picker/image_picker.dart';
 import '../service/storage_service.dart';
 import 'provider/generated_images_provider.dart';
 import 'provider/image_provider.dart';
+import 'provider/outfit_selector_provider.dart';
+import 'provider/scene_selector_provider.dart';
 import 'widgets/confetti_animation.dart';
 import 'widgets/gallery_grid.dart';
 import 'widgets/generate_button.dart';
+import 'widgets/outfit_selector.dart';
+import 'widgets/outfit_selector_button.dart';
 import 'widgets/parallax_effect.dart';
 import 'widgets/remix_app_bar.dart';
 import 'widgets/results_grid.dart';
+import 'widgets/scene_selector.dart';
+import 'widgets/scene_selector_button.dart';
 import 'widgets/section_header.dart';
 import 'widgets/step_badge.dart';
 import 'widgets/upload_card.dart';
@@ -106,9 +112,61 @@ class _RemixAppState extends ConsumerState<RemixApp>
 
   Future<void> _onRemixPressed(XFile image) async {
     final file = File(image.path);
+    final selectedScene = ref.read(sceneSelectorProviderProvider);
+    final selectedOutfit = ref.read(outfitSelectorProviderProvider);
+
     await ref
         .read(generatedImagesProvider.notifier)
-        .generate(file, _fixedPrompt);
+        .generate(
+          file,
+          _fixedPrompt,
+          selectedScene: selectedScene,
+          outfitStyle: selectedOutfit?.id,
+        );
+  }
+
+  /// Show outfit selector bottom sheet
+  void _showOutfitSelector() {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => OutfitStyleSelectorBottomSheet(
+        initialStyle: ref.read(outfitSelectorProviderProvider),
+        onConfirm: (selectedStyle) {
+          ref
+              .read(outfitSelectorProviderProvider.notifier)
+              .setStyle(selectedStyle);
+          HapticFeedback.lightImpact();
+        },
+      ),
+    );
+  }
+
+  /// Show scene selector bottom sheet
+  void _showSceneSelector() {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SceneSelectorBottomSheet(
+        initialSelectedScene: ref.read(sceneSelectorProviderProvider),
+        onConfirm: (selectedScene) {
+          if (selectedScene != null) {
+            ref
+                .read(sceneSelectorProviderProvider.notifier)
+                .selectScene(selectedScene);
+          } else {
+            ref.read(sceneSelectorProviderProvider.notifier).clearSelection();
+          }
+          HapticFeedback.lightImpact();
+        },
+      ),
+    );
   }
 
   Future<void> _saveImageBytes(Uint8List bytes, String suggestedName) async {
@@ -358,18 +416,55 @@ class _RemixAppState extends ConsumerState<RemixApp>
   }
 
   Widget _buildGenerateSection(XFile image, AsyncValue generatedState) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-      child: Column(
-        children: [
-          const SectionHeader(badge: StepBadges.step2, title: 'Generate Magic'),
-          const SizedBox(height: 16),
-          GenerateButton(
-            isLoading: generatedState.isLoading,
-            onPressed: () => _onRemixPressed(image),
+    return Consumer(
+      builder: (context, ref, _) {
+        final selectedScene = ref.watch(sceneSelectorProviderProvider);
+        final selectedOutfit = ref.watch(outfitSelectorProviderProvider);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: Column(
+            children: [
+              // Step 2: Choose Scenes
+              const SectionHeader(
+                badge: StepBadges.step2,
+                title: 'Choose Scenes',
+              ),
+              const SizedBox(height: 12),
+              SceneSelectorButton(
+                selectedScene: selectedScene,
+                onTap: _showSceneSelector,
+              ),
+              const SizedBox(height: 20),
+              // Outfit Selection
+              const Text(
+                'Outfit Style',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 10),
+              OutfitSelectorButton(
+                selectedStyle: selectedOutfit,
+                onTap: _showOutfitSelector,
+              ),
+              const SizedBox(height: 20),
+              // Step 3: Generate Magic
+              const SectionHeader(
+                badge: StepBadges.step3,
+                title: 'Generate Magic',
+              ),
+              const SizedBox(height: 16),
+              GenerateButton(
+                isLoading: generatedState.isLoading,
+                onPressed: () => _onRemixPressed(image),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

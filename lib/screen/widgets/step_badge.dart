@@ -52,8 +52,14 @@ class StepBadges {
   );
 
   static const step2 = StepBadge(
-    icon: Icons.auto_fix_high_rounded,
+    icon: Icons.palette_outlined,
     stepNumber: 'Step 2',
+    color: Color(0xFF6366F1),
+  );
+
+  static const step3 = StepBadge(
+    icon: Icons.auto_fix_high_rounded,
+    stepNumber: 'Step 3',
     color: Color(0xFF34C759),
   );
 

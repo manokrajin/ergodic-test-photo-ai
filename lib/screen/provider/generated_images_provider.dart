@@ -16,11 +16,22 @@ class GeneratedImages extends _$GeneratedImages {
   }
 
   /// Generate images using the Banana/Gemini backend
-  Future<void> generate(File imageFile, String prompt) async {
+  /// Optionally accepts a preselected travel scene and outfit style
+  Future<void> generate(
+    File imageFile,
+    String prompt, {
+    TravelScene? selectedScene,
+    String? outfitStyle,
+  }) async {
     state = const AsyncValue.loading();
     try {
       final service = ref.read(bananaServiceProvider);
-      final resp = await service(imageFile, prompt);
+      final resp = await service(
+        imageFile,
+        prompt,
+        selectedScene: selectedScene,
+        outfitStyle: outfitStyle,
+      );
       state = AsyncValue.data(resp);
     } catch (e, st) {
       state = AsyncValue.error(e, st);

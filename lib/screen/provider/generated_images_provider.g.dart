@@ -33,7 +33,7 @@ final class GeneratedImagesProvider
   GeneratedImages create() => GeneratedImages();
 }
 
-String _$generatedImagesHash() => r'd6b03176348de67e4e9bd52333fd8b32769dcacb';
+String _$generatedImagesHash() => r'434d63953d0a966c12d759a45b17834018346ba9';
 
 abstract class _$GeneratedImages extends $AsyncNotifier<GeminiImageResponse?> {
   FutureOr<GeminiImageResponse?> build();
